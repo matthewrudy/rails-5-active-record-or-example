@@ -2,16 +2,18 @@ class Party < ActiveRecord::Base
   has_one :party_extra
 
   def self.available_to(user)
-    scope = none
-    scope = scope.or(adult_party) if user.adult?
-    scope = scope.or(childrens_party(user.age))
-    # ArgumentError: Relation passed to #or must be structurally compatible
-    # scope = scope.or(kpop_music_festival)
-    scope
+    base = Party.unscoped.joins(:party_extra)
+    partial = base.none
+    partial = partial.or(base.adult_party) if user.adult?
+    partial = partial.or(base.childrens_party(user.age))
+    partial = partial.or(Party.unscoped.kpop_music_festival)
+    all.merge(partial)
   end
 
   def self.kpop_music_festival
-    joins(:party_extra).merge(PartyExtra.kpop)
+    where(party_type: 'festival')
+      .joins(:party_extra)
+      .merge(PartyExtra.kpop)
   end
 
   def self.adult_party
